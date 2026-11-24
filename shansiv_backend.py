@@ -1,3 +1,4 @@
+
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -5,17 +6,17 @@ from pydantic import BaseModel
 from openai import OpenAI
 
 app = FastAPI(
-    title="Shansiv AI",
-    description="Real AI Assistant Backend",
-    version="1.0.0"
+    title="Silent Shadow Assistant",
+    description="Real OpenAI AI Backend",
+    version="2.0.0"
 )
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"]
 )
 
 API_KEY = os.getenv("OPENAI_API_KEY")
@@ -31,43 +32,55 @@ class ChatRequest(BaseModel):
 @app.get("/")
 def home():
     return {
-        "name": "Shansiv AI",
+        "name": "Silent Shadow Assistant",
         "status": "Backend is running"
     }
 
 
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "ai_configured": client is not None
+    }
 
 
 @app.post("/chat")
 def chat(request: ChatRequest):
+
     if not request.message.strip():
         raise HTTPException(
             status_code=400,
-            detail="Message cannot be empty"
+            detail="Please enter a message."
         )
 
     if client is None:
         raise HTTPException(
             status_code=503,
-            detail="OpenAI API key is not configured"
+            detail="OpenAI API key is not configured."
         )
 
     try:
         response = client.responses.create(
             model=MODEL,
+            instructions=(
+                "You are Silent Shadow Assistant, "
+                "a helpful AI assistant for students, "
+                "developers and researchers. "
+                "Give clear, accurate and practical answers."
+            ),
             input=request.message
         )
 
         return {
             "reply": response.output_text,
-            "model": MODEL
+            "model": MODEL,
+            "status": "success"
         }
 
-    except Exception as error:
+    except Exception:
         raise HTTPException(
-            status_code=500,
-            detail="AI request failed. Check backend logs."
+            status_code=502,
+            detail="AI request failed. Check backend logs and API access."
         )
+        
